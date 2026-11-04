@@ -1,20 +1,20 @@
 {
  "orders": [],
  "started": 1793732156327,
- "updated": 1793775582993,
+ "updated": 1793777213843,
  "last": {
   "BTCUSDT|15m": {
-   "px": 78007.91,
+   "px": 78289.98,
    "trend": "no clear trend",
    "sig": null
   },
   "ETHUSDT|15m": {
-   "px": 2297.72,
+   "px": 2304.57,
    "trend": "uptrend",
    "sig": null
   },
   "SOLUSDT|15m": {
-   "px": 93.02,
+   "px": 93.27,
    "trend": "no clear trend",
    "sig": null
   }
