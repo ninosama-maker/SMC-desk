@@ -1,23 +1,11 @@
 {
  "orders": [],
  "started": 1793732156327,
- "updated": 1793777213843,
- "last": {
-  "BTCUSDT|15m": {
-   "px": 78289.98,
-   "trend": "no clear trend",
-   "sig": null
-  },
-  "ETHUSDT|15m": {
-   "px": 2304.57,
-   "trend": "uptrend",
-   "sig": null
-  },
-  "SOLUSDT|15m": {
-   "px": 93.27,
-   "trend": "no clear trend",
-   "sig": null
-  }
- },
- "tgOffset": 191395562
+ "tgOffset": 191395562,
+ "tz": "UTC",
+ "askedDay": "2026-11-04",
+ "today": {
+  "day": "2026-11-04",
+  "on": null
+ }
 }
