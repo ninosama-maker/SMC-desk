@@ -24,6 +24,7 @@ jobs:
           WORKER_URL: ${{ secrets.WORKER_URL }}
           WORKER_KEY: ${{ secrets.WORKER_KEY }}
           HEARTBEAT_H: 4
+          REQUIRE_LEVEL: off
       - name: Save state
         run: |
           git config user.name "smc-bot"
