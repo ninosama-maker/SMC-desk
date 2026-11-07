@@ -2,14 +2,18 @@
  "orders": [],
  "started": 1793732156327,
  "tgOffset": 191395562,
- "tz": "UTC",
+ "tz": "Asia/Kolkata",
  "askedDay": "2026-11-06",
  "today": {
-  "day": "2026-11-06",
-  "on": null
+  "day": "2026-11-07",
+  "on": true
  },
  "tradesPlaced": {
-  "day": "2026-11-06",
+  "day": "2026-11-07",
   "n": 0
+ },
+ "gate": {
+  "day": "2026-11-07",
+  "on": true
  }
 }
