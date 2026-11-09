@@ -4,7 +4,10 @@ on:
     inputs:
       days:
         description: 'Days of history to test'
-        default: '60'
+        default: '180'
+      tf:
+        description: 'Chart timeframe: 15m or 1h'
+        default: '15m'
 permissions:
   contents: read
 jobs:
@@ -21,3 +24,4 @@ jobs:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT: ${{ secrets.TG_CHAT }}
           BT_DAYS: ${{ inputs.days }}
+          BT_TF: ${{ inputs.tf }}
