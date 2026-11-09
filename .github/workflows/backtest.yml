@@ -1,0 +1,23 @@
+name: backtest
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Days of history to test'
+        default: '60'
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node backtest.js
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT: ${{ secrets.TG_CHAT }}
+          BT_DAYS: ${{ inputs.days }}
