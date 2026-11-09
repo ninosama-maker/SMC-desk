@@ -25,6 +25,8 @@ jobs:
           WORKER_KEY: ${{ secrets.WORKER_KEY }}
           HEARTBEAT_H: 4
           REQUIRE_LEVEL: off
+          CURRENCY: INR
+          BAL: 100000
       - name: Save state
         run: |
           git config user.name "smc-bot"
