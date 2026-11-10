@@ -56,18 +56,18 @@
  "started": 1793732156327,
  "tgOffset": 191395562,
  "tz": "asia/kolkata",
- "askedDay": "2026-11-10",
+ "askedDay": "2026-11-11",
  "today": {
-  "day": "2026-11-10",
-  "on": true
+  "day": "2026-11-11",
+  "on": null
  },
  "tradesPlaced": {
-  "day": "2026-11-10",
+  "day": "2026-11-11",
   "n": 0
  },
  "gate": {
-  "day": "2026-11-10",
-  "on": true
+  "day": "2026-11-11",
+  "on": null
  },
  "closedDay": "2026-11-08"
 }
