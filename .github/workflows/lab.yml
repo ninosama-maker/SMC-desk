@@ -1,0 +1,27 @@
+name: lab
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Days of history to test'
+        default: '730'
+      fee:
+        description: 'Round-trip cost in percent (0.1 futures, 0.2 Binance spot)'
+        default: '0.1'
+permissions:
+  contents: read
+jobs:
+  lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node lab.js
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT: ${{ secrets.TG_CHAT }}
+          LAB_DAYS: ${{ inputs.days }}
+          FEE_PCT: ${{ inputs.fee }}
