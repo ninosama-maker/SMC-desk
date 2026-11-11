@@ -59,7 +59,7 @@
  "askedDay": "2026-11-11",
  "today": {
   "day": "2026-11-11",
-  "on": null
+  "on": true
  },
  "tradesPlaced": {
   "day": "2026-11-11",
@@ -67,7 +67,7 @@
  },
  "gate": {
   "day": "2026-11-11",
-  "on": null
+  "on": true
  },
  "closedDay": "2026-11-08"
 }
