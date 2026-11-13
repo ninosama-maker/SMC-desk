@@ -1,0 +1,114 @@
+// SMC bot instant replies (Cloudflare Worker).
+// Telegram calls this the moment you send a command, so you get a reply right away.
+// The GitHub scanner reads your /today or /nahhh choice from here and posts its latest report here.
+// Needs: KV binding named KV, and variables BOT_TOKEN, CHAT_ID, SECRET.
+
+const HELP = 'I am listening.\nEvery morning at 5am I ask if you want to trade today. Until you choose, I place no new orders. Trades that are already open keep running until target or stop.\n\nCommands:\n/today  trade today\n/nahhh  no trade today\n/status  prices and setups\n/orders  your orders\n/timezone Region/City  for example /timezone Asia/Kolkata';
+
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' };   // lets your app talk to this Worker
+const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json', ...CORS } });
+
+function validTz(z) { try { new Intl.DateTimeFormat('en', { timeZone: z }); return true; } catch (e) { return false; } }
+function parts(ms, tz) {
+  const o = {};
+  for (const p of new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(ms))) o[p.type] = p.value;
+  return o;
+}
+function tradingDay(ms, tz) { const o = parts(ms - 5 * 3600e3, tz); return `${o.year}-${o.month}-${o.day}`; }
+
+async function getState(env) {
+  const tz = (await env.KV.get('tz')) || 'Asia/Kolkata';
+  const day = tradingDay(Date.now(), tz);
+  let g = null;
+  try { g = JSON.parse((await env.KV.get('gate')) || 'null'); } catch (e) {}
+  return { tz, day, on: g && g.day === day ? g.on : null };
+}
+function dayText(on) { return on === true ? 'ON, placing new orders' : on === false ? 'OFF, no new orders' : 'not chosen yet, no new orders'; }
+
+async function tgApi(env, method, body) {
+  try {
+    await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  } catch (e) {}
+}
+const say = (env, text) => tgApi(env, 'sendMessage', { chat_id: env.CHAT_ID, text });
+
+async function telegram(req, env) {
+  const u = await req.json();
+  let chat, text, cb = null;
+  if (u.callback_query) { cb = u.callback_query; chat = cb.message && cb.message.chat.id; text = '/' + String(cb.data || ''); }
+  else if (u.message) { chat = u.message.chat.id; text = (u.message.text || '').trim(); }
+  else return new Response('ok');
+  if (String(chat) !== String(env.CHAT_ID)) return new Response('ok'); // ignore everyone else
+
+  const cmd = text.split(/\s+/)[0].toLowerCase().split('@')[0];
+  const arg = text.split(/\s+/)[1];
+  const st = await getState(env);
+
+  if (cb) {
+    await tgApi(env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Got it' });
+    await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+  }
+
+  if (cmd === '/today') {
+    await env.KV.put('gate', JSON.stringify({ day: st.day, on: true }));
+    await say(env, 'Got it, I am listening. Trading is ON for today.\nI will place orders when a setup is ready and message you. Trades that are already open keep running until target or stop.');
+  } else if (cmd === '/nahhh') {
+    await env.KV.put('gate', JSON.stringify({ day: st.day, on: false }));
+    await say(env, 'Got it, I am listening. No trading today.\nI will place no new orders. Orders that have not filled yet get cancelled on my next scan, within about 15 minutes. Trades that are already open keep running until target or stop.');
+  } else if (cmd === '/status') {
+    let r = null;
+    try { r = JSON.parse((await env.KV.get('report')) || 'null'); } catch (e) {}
+    if (!r) await say(env, `Trading today: ${dayText(st.on)}\nNo scan report yet. The next scan will send one within about 15 minutes.`);
+    else await say(env, `Trading today: ${dayText(st.on)}\nLast scan ${Math.max(0, Math.round((Date.now() - r.at) / 60000))} minutes ago.\n${r.market}\nActive orders: ${r.active}\n${r.summary}`);
+  } else if (cmd === '/orders') {
+    let r = null;
+    try { r = JSON.parse((await env.KV.get('report')) || 'null'); } catch (e) {}
+    await say(env, r ? r.orders : 'No scan report yet. The next scan will send one within about 15 minutes.');
+  } else if (cmd === '/timezone') {
+    if (arg && validTz(arg)) {
+      await env.KV.put('tz', arg);
+      const o = parts(Date.now(), arg);
+      await say(env, `Time zone set to ${arg}. It is ${o.hour}:${o.minute} there now. Your trading day starts at 5am your time.`);
+    } else await say(env, 'Send it like this: /timezone Asia/Kolkata or /timezone Europe/London or /timezone America/New_York');
+  } else if (cmd === '/start' || cmd === '/help') {
+    await say(env, HELP);
+  } else {
+    await say(env, 'I only answer commands. Send /help to see them.');
+  }
+  return new Response('ok');
+}
+
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    try {
+      if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (url.pathname === '/tg/' + env.SECRET && req.method === 'POST') return await telegram(req, env);
+      if (!['/gate', '/report', '/tz', '/setgate'].includes(url.pathname)) return new Response('SMC bot worker is running');
+      if (url.searchParams.get('key') !== env.SECRET) return json({ ok: false, error: 'wrong key' }, 403);
+      if (url.pathname === '/gate') return json(await getState(env));
+      if (url.pathname === '/tz') {                                  // read or change the bot time zone from the app
+        const z = url.searchParams.get('set');
+        if (z) {
+          if (!validTz(z)) return json({ ok: false, error: 'unknown time zone' }, 400);
+          await env.KV.put('tz', z);
+        }
+        return json({ ok: true, ...(await getState(env)) });
+      }
+      if (url.pathname === '/setgate') {                             // trade today / no trade today from the app
+        const on = url.searchParams.get('on');
+        if (on !== 'true' && on !== 'false') return json({ ok: false, error: 'on must be true or false' }, 400);
+        const st = await getState(env);
+        await env.KV.put('gate', JSON.stringify({ day: st.day, on: on === 'true' }));
+        return json({ ok: true, ...(await getState(env)) });
+      }
+      if (url.pathname === '/report' && req.method === 'POST') {
+        await env.KV.put('report', JSON.stringify(await req.json()));
+        return json({ ok: true });
+      }
+      return new Response('SMC bot worker is running');
+    } catch (e) {
+      return new Response('error', { status: 500 });
+    }
+  }
+};
